@@ -33,7 +33,7 @@ public class SecurityConfig {
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           RestAuthenticationEntryPoint authenticationEntryPoint,
                           RestAccessDeniedHandler accessDeniedHandler,
-                          @Value("${app.cors.allowed-origins:http://localhost:10109,http://127.0.0.1:10109}")
+                          @Value("${app.cors.allowed-origins:http://localhost:10109,http://127.0.0.1:10109,http://localhost:10110,http://127.0.0.1:10110}")
                           List<String> allowedOrigins) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;

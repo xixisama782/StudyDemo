@@ -1,4 +1,4 @@
-/** 路由配置与登录/角色守卫 */
+/** 路由配置与登录守卫（用户端） */
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
@@ -12,16 +12,15 @@ import ProfileEditView from '../views/ProfileEditView.vue'
 import AccountSettingsView from '../views/AccountSettingsView.vue'
 import GenericGamePlayerView from '../views/GenericGamePlayerView.vue'
 import GameLobbyView from '../views/GameLobbyView.vue'
-import AdminLoginView from '../views/AdminLoginView.vue'
-import AdminLayout from '../layouts/AdminLayout.vue'
-import AdminDashboardView from '../views/AdminDashboardView.vue'
-import AdminGameTypesView from '../views/AdminGameTypesView.vue'
-import AdminGamesView from '../views/AdminGamesView.vue'
-import AdminUsersView from '../views/AdminUsersView.vue'
 import { useAuthStore } from '../store/auth'
 
+const adminAppUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:10110/login'
+
+const redirectToAdminApp = () => {
+  window.location.replace(adminAppUrl)
+}
+
 const routes: RouteRecordRaw[] = [
-  // 公开：用户登录 / 注册 / 排行榜
   {
     path: '/login',
     name: 'Login',
@@ -37,45 +36,6 @@ const routes: RouteRecordRaw[] = [
     name: 'Leaderboard',
     component: LeaderboardView
   },
-  // 管理端登录
-  {
-    path: '/admin/login',
-    name: 'AdminLogin',
-    component: AdminLoginView
-  },
-  // 管理端（需 admin 角色）
-  {
-    path: '/admin',
-    component: AdminLayout,
-    meta: { requiresAuth: true, role: 'admin' },
-    children: [
-      {
-        path: '',
-        redirect: '/admin/dashboard'
-      },
-      {
-        path: 'dashboard',
-        name: 'AdminDashboard',
-        component: AdminDashboardView
-      },
-      {
-        path: 'games',
-        name: 'AdminGames',
-        component: AdminGamesView
-      },
-      {
-        path: 'game-types',
-        name: 'AdminGameTypes',
-        component: AdminGameTypesView
-      },
-      {
-        path: 'users',
-        name: 'AdminUsers',
-        component: AdminUsersView
-      }
-    ]
-  },
-  // 用户端主应用（需 user 角色）
   {
     path: '/app',
     name: 'UserApp',
@@ -135,25 +95,21 @@ const router = createRouter({
   routes
 })
 
-/** 路由守卫：未登录跳转登录页；角色与 meta.role 不匹配时重定向到对应首页 */
+/** 路由守卫：未登录跳转登录页；旧 /admin 路径跳转独立管理端 */
 router.beforeEach((to, _from, next) => {
+  if (to.path === '/admin' || to.path.startsWith('/admin/')) {
+    redirectToAdminApp()
+    return
+  }
+
   const authStore = useAuthStore()
   const isAuthenticated = authStore.isAuthenticated
-  const userRole = authStore.role
 
   if (to.meta.requiresAuth) {
     if (!isAuthenticated) {
-      if (to.path.startsWith('/admin')) {
-        next('/admin/login')
-      } else {
-        next('/login')
-      }
-    } else if (to.meta.role && to.meta.role !== userRole) {
-      if (userRole === 'admin') {
-        next('/admin')
-      } else {
-        next('/app')
-      }
+      next('/login')
+    } else if (to.meta.role && to.meta.role !== authStore.role) {
+      next('/app')
     } else {
       next()
     }

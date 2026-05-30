@@ -24,7 +24,7 @@
       </n-form>
       <div class="footer-link">
         返回用户登录：
-        <router-link to="/login">用户登录</router-link>
+        <a :href="clientLoginUrl">用户登录</a>
       </div>
     </n-card>
   </div>
@@ -38,6 +38,8 @@ import { NAlert, NButton, NCard, NForm, NFormItem, NInput } from 'naive-ui'
 import { useAuthStore } from '../store/auth'
 import api from '../api'
 import { getApiBusinessMessage, getApiErrorMessage } from '../utils/apiError'
+
+const clientLoginUrl = import.meta.env.VITE_CLIENT_URL || 'http://localhost:10109/login'
 
 const form = ref({
   username: '',
@@ -56,10 +58,9 @@ const handleLogin = async () => {
     if (response.data.code === 200) {
       authStore.setAuth({
         token: response.data.data.token,
-        admin: response.data.data.admin,
-        role: 'admin'
+        admin: response.data.data.admin
       })
-      router.push('/admin')
+      router.push('/dashboard')
     } else {
       error.value = getApiBusinessMessage(response, '登录失败')
     }

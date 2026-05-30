@@ -122,7 +122,6 @@ import {
 import { useAuthStore, type UserInfo } from '../store/auth'
 import { userApi, userStatsApi, historyApi, favoriteApi } from '../api'
 import type { ApiResult } from '../api'
-import { getApiErrorMessage } from '../utils/apiError'
 
 interface RecentHistoryItem {
   id: number

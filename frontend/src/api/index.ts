@@ -63,79 +63,10 @@ export const gameApi = {
   }
 }
 
-// ── 管理端游戏 CRUD ──
-export const adminGameApi = {
-  getGameList(typeId: number | null | undefined, keyword: string | null | undefined, page = 1, pageSize = 10) {
-    const params: Record<string, string | number> = { page, pageSize }
-    if (typeId) params.typeId = typeId
-    if (keyword) params.keyword = keyword
-    return api.get<ApiResult<{ list: unknown[]; total?: number }>>('/games/admin/list', { params })
-  },
-
-  createGame(data: unknown) {
-    return api.post<ApiResult<unknown>>('/admin/games', data)
-  },
-
-  updateGame(id: number, data: unknown) {
-    return api.put<ApiResult<unknown>>(`/admin/games/${id}`, data)
-  },
-
-  deleteGame(id: number) {
-    return api.delete<ApiResult<unknown>>(`/admin/games/${id}`)
-  }
-}
-
-// ── 游戏类型 ──
+// ── 游戏类型（用户端只读）──
 export const gameTypeApi = {
   getGameTypes() {
     return api.get<ApiResult<unknown[]>>('/game-types')
-  },
-
-  createGameType(data: unknown) {
-    return api.post<ApiResult<unknown>>('/admin/game-types', data)
-  },
-
-  updateGameType(id: number, data: unknown) {
-    return api.put<ApiResult<unknown>>(`/admin/game-types/${id}`, data)
-  },
-
-  deleteGameType(id: number) {
-    return api.delete<ApiResult<unknown>>(`/admin/game-types/${id}`)
-  }
-}
-
-// ── 管理端统计 ──
-export const adminStatsApi = {
-  getOverview() {
-    return api.get<ApiResult<Record<string, unknown>>>('/admin/statistics/overview')
-  },
-
-  getPopularGames(limit = 10) {
-    return api.get<ApiResult<unknown[]>>('/admin/statistics/popular-games', {
-      params: { limit }
-    })
-  }
-}
-
-// ── 管理端用户 ──
-export const adminUserApi = {
-  getUsers(keyword: string | undefined, status: string | undefined, page = 1, pageSize = 10) {
-    const params: Record<string, string | number> = { page, pageSize }
-    if (keyword) params.keyword = keyword
-    if (status) params.status = status
-    return api.get<ApiResult<{ list: unknown[]; total?: number }>>('/admin/users', { params })
-  },
-
-  getUserById(id: number) {
-    return api.get<ApiResult<Record<string, unknown>>>(`/admin/users/${id}`)
-  },
-
-  updateUserStatus(id: number, status: string) {
-    return api.put<ApiResult<unknown>>(`/admin/users/${id}/status`, { status })
-  },
-
-  resetPassword(id: number, newPassword: string) {
-    return api.put<ApiResult<unknown>>(`/admin/users/${id}/password`, { newPassword })
   }
 }
 

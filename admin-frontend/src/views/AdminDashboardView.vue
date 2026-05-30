@@ -95,19 +95,19 @@
         <!-- 快捷入口 -->
         <n-card title="快捷入口">
           <n-space :wrap="true">
-            <n-button type="primary" secondary @click="$router.push('/admin/games')">
+            <n-button type="primary" secondary @click="$router.push('/games')">
               <template #icon>
                 <n-icon><game-controller-outline /></n-icon>
               </template>
               游戏管理
             </n-button>
-            <n-button type="success" secondary @click="$router.push('/admin/game-types')">
+            <n-button type="success" secondary @click="$router.push('/game-types')">
               <template #icon>
                 <n-icon><pricetags-outline /></n-icon>
               </template>
               类型管理
             </n-button>
-            <n-button type="warning" secondary @click="$router.push('/admin/users')">
+            <n-button type="warning" secondary @click="$router.push('/users')">
               <template #icon>
                 <n-icon><person-outline /></n-icon>
               </template>

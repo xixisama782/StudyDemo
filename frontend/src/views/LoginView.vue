@@ -55,9 +55,11 @@ const error = ref('')
 const router = useRouter()
 const authStore = useAuthStore()
 
-/** 双击「管理端」入口跳转管理员登录 */
+/** 双击「管理端」入口打开独立管理端应用 */
+const adminLoginUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:10110/login'
+
 const goToAdminLogin = () => {
-  router.push('/admin/login')
+  window.open(adminLoginUrl, '_blank', 'noopener,noreferrer')
 }
 
 const handleLogin = async () => {

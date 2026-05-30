@@ -31,7 +31,7 @@ jwt:
 
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:10109,http://127.0.0.1:10109}
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:10109,http://127.0.0.1:10109,http://localhost:10110,http://127.0.0.1:10110}
   redis:
     local-home: ${GAMECENTER_REDIS_HOME:D:/Redis}
   email:

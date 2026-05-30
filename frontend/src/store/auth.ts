@@ -74,14 +74,10 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem(USER_KEY)
       }
     },
-    /** 调用对应登出接口后清空本地状态（接口失败仍清本地） */
+    /** 调用用户登出接口后清空本地状态（接口失败仍清本地） */
     async logout() {
       try {
-        if (this.role === 'admin') {
-          await api.post('/admin/auth/logout')
-        } else {
-          await api.post('/auth/logout')
-        }
+        await api.post('/auth/logout')
       } catch (error) {
         console.error('Logout API error:', error)
       } finally {

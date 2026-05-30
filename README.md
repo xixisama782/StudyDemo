@@ -17,7 +17,8 @@ mysql -u root -p gamecenter < init_schema.sql
 StartGameCenter.cmd
 ```
 
-- 前端：http://localhost:10109  
+- 用户端：http://localhost:10109  
+- 管理端：http://localhost:10110  
 - 后端 API：http://localhost:8080/api/game-types  
 
 分步启动、生产部署、环境变量与 FAQ 见 [PROJECT.md](./PROJECT.md)。

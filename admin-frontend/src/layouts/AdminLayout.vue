@@ -66,14 +66,14 @@ const adminName = ref('admin')
 const activePath = computed(() => route.path)
 
 const menuOptions: MenuOption[] = [
-  { label: '仪表盘', key: '/admin/dashboard' },
-  { label: '游戏管理', key: '/admin/games' },
-  { label: '类型管理', key: '/admin/game-types' },
-  { label: '用户管理', key: '/admin/users' }
+  { label: '仪表盘', key: '/dashboard' },
+  { label: '游戏管理', key: '/games' },
+  { label: '类型管理', key: '/game-types' },
+  { label: '用户管理', key: '/users' }
 ]
 
 onMounted(() => {
-  const admin = authStore.user
+  const admin = authStore.admin
   if (admin && typeof admin.displayName === 'string' && admin.displayName) {
     adminName.value = admin.displayName
   } else if (admin && typeof admin.username === 'string' && admin.username) {
@@ -87,7 +87,7 @@ const handleMenuSelect = (key: string) => {
 
 const handleLogout = async () => {
   await authStore.logout()
-  router.push('/admin/login')
+  router.push('/login')
 }
 </script>
 

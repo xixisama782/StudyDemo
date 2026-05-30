@@ -75,7 +75,8 @@ GameCenter 是一个基于 **Vue 3** 的前端小游戏中心：用户可浏览�
 ```mermaid
 flowchart TB
   subgraph Browser["浏览器"]
-    SPA["Vue 3 SPA<br/>:10109 dev"]
+    ClientSPA["用户端 Vue SPA<br/>:10109 dev"]
+    AdminSPA["管理端 Vue SPA<br/>:10110 dev"]
     Pub["public/games/* 静态游戏"]
   end
   subgraph Gateway["Nginx / Vite 代理"]
@@ -89,8 +90,9 @@ flowchart TB
     CACHE["Redis Cache"]
   end
   DB[(MySQL gamecenter)]
-  SPA --> Gateway
-  Pub --> SPA
+  ClientSPA --> Gateway
+  AdminSPA --> Gateway
+  Pub --> ClientSPA
   Gateway --> SEC
   SEC --> CTRL
   CTRL --> SVC
@@ -112,9 +114,10 @@ flowchart TB
 |----|------|
 | MySQL | `localhost:3306/gamecenter`，`root` / `123456` |
 | Redis | `localhost:6379` |
-| CORS | `http://localhost:10109`, `http://127.0.0.1:10109` |
+| CORS | `http://localhost:10109`, `http://127.0.0.1:10109`, `http://localhost:10110`, `http://127.0.0.1:10110` |
 | 后端端口 | `8080` |
-| 前端端口 | `10109` |
+| 用户端端口 | `10109` |
+| 管理端端口 | `10110` |
 
 ### 2.4 用户端页面路由
 
@@ -145,16 +148,18 @@ flowchart TD
   PM --> Bc["可选：beacon 结束会话"]
 ```
 
-### 2.6 管理端结构
+### 2.6 管理端结构（独立 SPA：`admin-frontend/`，dev 端口 10110）
 
 ```mermaid
 flowchart TD
-  AL["/admin/login"] --> Lay["AdminLayout /admin/*"]
-  Lay --> D["AdminDashboardView"]
-  Lay --> Gm["AdminGamesView"]
-  Lay --> Gt["AdminGameTypesView"]
-  Lay --> Us["AdminUsersView"]
+  AL["/login"] --> Lay["AdminLayout /*"]
+  Lay --> D["/dashboard AdminDashboardView"]
+  Lay --> Gm["/games AdminGamesView"]
+  Lay --> Gt["/game-types AdminGameTypesView"]
+  Lay --> Us["/users AdminUsersView"]
 ```
+
+用户端 `frontend/` 不再提供 `/admin/*` 页面；访问旧路径会重定向到 `http://localhost:10110`。
 
 ### 2.7 认证请求序列
 
@@ -219,9 +224,9 @@ sequenceDiagram
 
 - `backend/.env`
 - `backend/src/main/resources/application-local.yml`
-- `frontend/.env*`（除 `.env.example`）
+- `frontend/.env*`、`admin-frontend/.env*`（除 `.env.example`）
 
-模板文件：`backend/env.example`、`frontend/.env.example`、`application-local.yml.example`
+模板文件：`backend/env.example`、`frontend/.env.example`、`admin-frontend/.env.example`、`application-local.yml.example`
 
 ### 3.5 联调约定
 
@@ -262,21 +267,30 @@ GameCenter/
 │           ├── application-dev.yml
 │           ├── application-prod.yml
 │           └── application-local.yml.example
-├── frontend/
-│   ├── package.json
+├── frontend/                  # 用户端 SPA（dev :10109，build → dist/）
+│   ├── package.json           # npm run dev / dev:client
 │   ├── vite.config.ts         # dev 端口 10109，代理 /api、/uploads
 │   ├── .env.example
 │   ├── public/games/          # 内嵌小游戏静态资源
 │   └── src/
 │       ├── main.ts
 │       ├── App.vue
-│       ├── api/index.ts       # Axios + 各 *Api
+│       ├── api/index.ts       # 用户端 Axios + *Api
+│       ├── router/index.ts
+│       ├── store/auth.ts
+│       ├── views/             # 用户页面组件
+│       ├── utils/apiError.ts
+│       └── constants/apiErrorCodes.ts
+├── admin-frontend/            # 管理端 SPA（dev :10110，build → dist/）
+│   ├── package.json           # npm run dev
+│   ├── vite.config.ts         # dev 端口 10110，代理 /api、/uploads
+│   ├── .env.example
+│   └── src/
+│       ├── api/index.ts       # 管理端 Axios + admin*Api
 │       ├── router/index.ts
 │       ├── store/auth.ts
 │       ├── layouts/AdminLayout.vue
-│       ├── views/             # 各页面组件
-│       ├── utils/apiError.ts
-│       └── constants/apiErrorCodes.ts
+│       └── views/Admin*.vue
 └── uploads/avatars/           # 运行时头像目录（gitignore 或部署时创建）
 ```
 
@@ -301,13 +315,20 @@ GameCenter/
 
 ### 4.2 前端视图索引
 
+**用户端 `frontend/`**
+
 | 视图 | 路径 |
 |------|------|
 | `LoginView` / `RegisterView` | `/login`, `/register` |
 | `UserAppView` + 子路由 | `/app/*` |
 | `LeaderboardView` | `/leaderboard` |
-| `AdminLoginView` | `/admin/login` |
-| `AdminLayout` + 子路由 | `/admin/*` |
+
+**管理端 `admin-frontend/`**（http://localhost:10110）
+
+| 视图 | 路径 |
+|------|------|
+| `AdminLoginView` | `/login` |
+| `AdminLayout` + 子路由 | `/dashboard`, `/games`, `/game-types`, `/users` |
 
 ---
 
@@ -623,7 +644,7 @@ flowchart LR
 | 角色 | JWT claim | 前端 `auth.role` | 说明 |
 |------|-----------|------------------|------|
 | 普通用户 | `role=user` | `user` | 用户端 `/app/*` |
-| 管理员 | `role=admin` | `admin` | 管理端 `/admin/*` |
+| 管理员 | `role=admin` | — | 管理端 `admin-frontend`（`:10110`） |
 
 用户与管理员使用**独立登录入口**与 Token；同一浏览器不宜混用两种会话。
 
@@ -656,16 +677,14 @@ flowchart LR
 
 ### 7.4 前端路由守卫
 
-```typescript
-// router/index.ts — 逻辑摘要
-if (to.meta.requiresAuth && !isAuthenticated) → 跳转 /login 或 /admin/login
-if (to.meta.role && to.meta.role !== userRole) → 跳转 /app 或 /admin
-```
+**用户端** `frontend/src/router/index.ts`：`requiresAuth` → `/login`；`/admin/*` 重定向至管理端 URL。
+
+**管理端** `admin-frontend/src/router/index.ts`：未登录访问受保护路由 → `/login`。
 
 ### 7.5 CORS
 
 - 配置项：`app.cors.allowed-origins`（列表）
-- dev 默认：`http://localhost:10109`, `http://127.0.0.1:10109`
+- dev 默认：`http://localhost:10109`, `http://127.0.0.1:10109`, `http://localhost:10110`, `http://127.0.0.1:10110`
 - prod：通过 `APP_CORS_ALLOWED_ORIGINS` 注入，须与浏览器 Origin **完全一致**（含协议，无尾斜杠）
 - `allowCredentials(true)` 时禁止使用 `*`
 
@@ -926,14 +945,19 @@ cd D:\Redis && .\redis-server.exe
 cd d:\SystemDemo\GameCenter\backend
 mvn spring-boot:run
 
-# 终端 3：前端
+# 终端 3：用户端
 cd d:\SystemDemo\GameCenter\frontend
+npm run dev
+
+# 终端 4（可选）：管理端
+cd d:\SystemDemo\GameCenter\admin-frontend
 npm run dev
 ```
 
 **验证**
 
-- 浏览器：`http://localhost:10109` — 游戏列表
+- 用户端：`http://localhost:10109` — 游戏列表
+- 管理端：`http://localhost:10110/login` — 管理员登录
 - API：`http://localhost:8080/api/game-types`
 - 注册：配置 SMTP 后应收到验证码
 
@@ -943,9 +967,12 @@ npm run dev
 |------|------|
 | 后端测试 | `cd backend && mvn test` |
 | 后端打包 | `cd backend && mvn -DskipTests package` |
-| 前端类型检查 | `cd frontend && npm run typecheck` |
-| 前端测试 | `cd frontend && npm test` |
-| 前端构建 | `cd frontend && npm run build` |
+| 用户端类型检查 | `cd frontend && npm run typecheck` |
+| 用户端测试 | `cd frontend && npm test` |
+| 用户端构建 | `cd frontend && npm run build` → `frontend/dist/` |
+| 管理端类型检查 | `cd admin-frontend && npm run typecheck` |
+| 管理端测试 | `cd admin-frontend && npm test` |
+| 管理端构建 | `cd admin-frontend && npm run build` → `admin-frontend/dist/` |
 | 无 Redis 应急 | `mvn spring-boot:run -Dspring-boot.run.arguments="--spring.profiles.active=no-redis"` |
 
 ### 9.5 关键文件路径

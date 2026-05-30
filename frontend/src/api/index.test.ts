@@ -43,7 +43,6 @@ vi.mock('axios', () => ({
 
 describe('frontend api contract helpers', async () => {
   const {
-    adminGameApi,
     favoriteApi,
     historyApi,
     leaderboardApi,
@@ -96,13 +95,4 @@ describe('frontend api contract helpers', async () => {
     })
   })
 
-  it('builds admin game filtered list params', async () => {
-    calls.length = 0
-    await adminGameApi.getGameList(2, 'snake', 3, 10)
-    expect(calls[0]).toMatchObject({
-      method: 'get',
-      url: '/games/admin/list',
-      config: { params: { typeId: 2, keyword: 'snake', page: 3, pageSize: 10 } }
-    })
-  })
 })

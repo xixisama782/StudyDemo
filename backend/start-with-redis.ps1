@@ -1,16 +1,24 @@
 # 开发用：在启动 Spring Boot 前先确保本机 Redis 与前端开发服务已启动
 # 用法：
-#   .\start-with-redis.ps1                 # 起 Redis + 前端 + mvn spring-boot:run
-#   .\start-with-redis.ps1 -RedisOnly      # 仅起 Redis 后退出（供 VS Code 等前置任务使用）
-#   .\start-with-redis.ps1 -FrontendOnly   # 仅起前端后退出
-#   .\start-with-redis.ps1 -SkipRedis      # 不处理 Redis
-#   .\start-with-redis.ps1 -SkipFrontend   # 不处理前端
+#   .\start-with-redis.ps1                      # 起 Redis + 用户端 + 管理端 + mvn spring-boot:run
+#   .\start-with-redis.ps1 -RedisOnly           # 仅起 Redis 后退出
+#   .\start-with-redis.ps1 -ClientFrontendOnly  # 仅起用户端 (10109) 后退出
+#   .\start-with-redis.ps1 -AdminFrontendOnly   # 仅起管理端 (10110) 后退出
+#   .\start-with-redis.ps1 -FrontendOnly        # 同 -ClientFrontendOnly
+#   .\start-with-redis.ps1 -SkipRedis           # 不处理 Redis
+#   .\start-with-redis.ps1 -SkipFrontend        # 不处理任何前端
+#   .\start-with-redis.ps1 -SkipAdminFrontend   # 不启动管理端
+#   .\start-with-redis.ps1 -SkipClientFrontend  # 不启动用户端
 # 目录默认 D:\Redis，可设置环境变量 GAMECENTER_REDIS_HOME 覆盖
 param(
     [switch] $RedisOnly,
     [switch] $FrontendOnly,
+    [switch] $ClientFrontendOnly,
+    [switch] $AdminFrontendOnly,
     [switch] $SkipRedis,
-    [switch] $SkipFrontend
+    [switch] $SkipFrontend,
+    [switch] $SkipAdminFrontend,
+    [switch] $SkipClientFrontend
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,11 +31,17 @@ if ($env:SPRING_DATA_REDIS_PORT) {
 }
 $serverExe = Join-Path $redisHome 'redis-server.exe'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$frontendDir = Join-Path $projectRoot 'frontend'
-$frontendPort = 10109
+$clientFrontendDir = Join-Path $projectRoot 'frontend'
+$adminFrontendDir = Join-Path $projectRoot 'admin-frontend'
+$clientPort = 10109
+$adminPort = 10110
 if ($env:GAMECENTER_FRONTEND_PORT) {
     $fp = 0
-    if ([int]::TryParse($env:GAMECENTER_FRONTEND_PORT, [ref]$fp)) { $frontendPort = $fp }
+    if ([int]::TryParse($env:GAMECENTER_FRONTEND_PORT, [ref]$fp)) { $clientPort = $fp }
+}
+if ($env:GAMECENTER_ADMIN_FRONTEND_PORT) {
+    $ap = 0
+    if ([int]::TryParse($env:GAMECENTER_ADMIN_FRONTEND_PORT, [ref]$ap)) { $adminPort = $ap }
 }
 
 function Test-LocalPortOpen {
@@ -44,36 +58,42 @@ function Test-LocalPortOpen {
     }
 }
 
-function Start-FrontendIfNeeded {
-    if (-not (Test-Path -LiteralPath $frontendDir)) {
-        Write-Warning "未找到前端目录: $frontendDir"
+function Start-DevServerIfNeeded {
+    param(
+        [string] $FrontendDir,
+        [int] $LocalPort,
+        [string] $Label
+    )
+
+    if (-not (Test-Path -LiteralPath $FrontendDir)) {
+        Write-Warning "未找到前端目录: $FrontendDir"
         return
     }
 
-    if (Test-LocalPortOpen -LocalPort $frontendPort) {
-        Write-Host "前端开发服务已在 127.0.0.1:$frontendPort 可连接，跳过启动。"
+    if (Test-LocalPortOpen -LocalPort $LocalPort) {
+        Write-Host "$Label 已在 127.0.0.1:$LocalPort 可连接，跳过启动。"
         return
     }
 
-    $packageJson = Join-Path $frontendDir 'package.json'
+    $packageJson = Join-Path $FrontendDir 'package.json'
     if (-not (Test-Path -LiteralPath $packageJson)) {
-        Write-Warning "未找到前端 package.json: $packageJson"
+        Write-Warning "未找到 package.json: $packageJson"
         return
     }
 
-    $safeFrontendDir = $frontendDir.Replace("'", "''")
-    $frontendCommand = "Set-Location -LiteralPath '$safeFrontendDir'; npm run dev"
-    Write-Host "正在启动前端开发服务: npm run dev (端口 $frontendPort) ..."
+    $safeDir = $FrontendDir.Replace("'", "''")
+    $command = "Set-Location -LiteralPath '$safeDir'; npm run dev"
+    Write-Host "正在启动 $Label : npm run dev (端口 $LocalPort) ..."
     Start-Process -FilePath 'powershell' `
-        -ArgumentList @('-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', $frontendCommand) `
-        -WorkingDirectory $frontendDir `
+        -ArgumentList @('-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', $command) `
+        -WorkingDirectory $FrontendDir `
         -WindowStyle Normal
 
     Start-Sleep -Seconds 2
-    if (Test-LocalPortOpen -LocalPort $frontendPort) {
-        Write-Host "前端开发服务已就绪。"
+    if (Test-LocalPortOpen -LocalPort $LocalPort) {
+        Write-Host "$Label 已就绪。"
     } else {
-        Write-Warning "前端服务尚未检测到 127.0.0.1:$frontendPort，可能仍在编译或端口已变化。"
+        Write-Warning "$Label 尚未检测到 127.0.0.1:$LocalPort，可能仍在编译。"
     }
 }
 
@@ -106,11 +126,28 @@ if (-not $SkipRedis) {
 
 if ($RedisOnly) { exit 0 }
 
-if (-not $SkipFrontend) {
-    Start-FrontendIfNeeded
+$startClient = -not $SkipFrontend -and -not $SkipClientFrontend -and -not $AdminFrontendOnly
+$startAdmin = -not $SkipFrontend -and -not $SkipAdminFrontend -and -not ($FrontendOnly -or $ClientFrontendOnly)
+
+if ($FrontendOnly -or $ClientFrontendOnly) {
+    $startClient = -not $SkipFrontend -and -not $SkipClientFrontend
+    $startAdmin = $false
 }
 
-if ($FrontendOnly) { exit 0 }
+if ($AdminFrontendOnly) {
+    $startClient = $false
+    $startAdmin = -not $SkipFrontend
+}
+
+if ($startClient) {
+    Start-DevServerIfNeeded -FrontendDir $clientFrontendDir -LocalPort $clientPort -Label '用户端前端'
+}
+
+if ($startAdmin) {
+    Start-DevServerIfNeeded -FrontendDir $adminFrontendDir -LocalPort $adminPort -Label '管理端前端'
+}
+
+if ($FrontendOnly -or $ClientFrontendOnly -or $AdminFrontendOnly) { exit 0 }
 
 Set-Location -LiteralPath $PSScriptRoot
 mvn spring-boot:run
