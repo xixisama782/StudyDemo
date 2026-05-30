@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.gamecenter.mapper.LeaderboardMapper">
+
+    <!-- MySQL 8.0+：名次动态计算，不依赖 rank_position 列 -->
+    <select id="selectLeaderboard" resultType="java.util.HashMap">
+        SELECT
+            RANK() OVER (ORDER BY l.score DESC) AS rankPosition,
+            l.user_id AS userId,
+            u.username AS username,
+            u.display_name AS displayName,
+            u.avatar_url AS avatarUrl,
+            l.score AS score,
+            l.created_at AS createdAt
+        FROM leaderboards l
+        INNER JOIN users u ON l.user_id = u.id
+        WHERE l.game_id = #{gameId} AND l.type = #{type}
+        ORDER BY l.score DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectUserRank" resultType="java.util.HashMap">
+        SELECT ranked.rankPosition AS rankPosition,
+               ranked.score AS score,
+               ranked.createdAt AS createdAt
+        FROM (
+            SELECT RANK() OVER (ORDER BY l.score DESC) AS rankPosition,
+                   l.score AS score,
+                   l.created_at AS createdAt,
+                   l.user_id AS uid
+            FROM leaderboards l
+            WHERE l.game_id = #{gameId} AND l.type = #{type}
+        ) ranked
+        WHERE ranked.uid = #{userId}
+    </select>
+
+    <select id="selectUserAllRanks" resultType="java.util.HashMap">
+        SELECT ranked.gameId AS gameId,
+               ranked.gameName AS gameName,
+               ranked.thumbnailUrl AS thumbnailUrl,
+               ranked.rankPosition AS rankPosition,
+               ranked.score AS score,
+               ranked.createdAt AS createdAt
+        FROM (
+            SELECT l.game_id AS gameId,
+                   g.name AS gameName,
+                   g.thumbnail_url AS thumbnailUrl,
+                   RANK() OVER (PARTITION BY l.game_id ORDER BY l.score DESC) AS rankPosition,
+                   l.user_id AS uid,
+                   l.score AS score,
+                   l.created_at AS createdAt
+            FROM leaderboards l
+            INNER JOIN games g ON l.game_id = g.id
+            WHERE l.type = 'all_time'
+        ) ranked
+        WHERE ranked.uid = #{userId}
+        ORDER BY ranked.rankPosition ASC
+    </select>
+</mapper>

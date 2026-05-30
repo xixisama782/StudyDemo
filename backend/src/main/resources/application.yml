@@ -1,0 +1,78 @@
+# GameCenter 共享配置。默认 profile：dev（见 application-dev.yml）
+# 生产：--spring.profiles.active=prod 或 SPRING_PROFILES_ACTIVE=prod（见 application-prod.yml）
+spring:
+  profiles:
+    default: dev
+  application:
+    name: gamecenter-backend
+  config:
+    import: optional:classpath:application-local.yml
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jackson:
+    serialization:
+      FAIL_ON_EMPTY_BEANS: false
+
+  data:
+    redis:
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:2000ms}
+      lettuce:
+        pool:
+          max-active: ${SPRING_DATA_REDIS_POOL_MAX_ACTIVE:8}
+          max-idle: ${SPRING_DATA_REDIS_POOL_MAX_IDLE:8}
+          min-idle: ${SPRING_DATA_REDIS_POOL_MIN_IDLE:0}
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: ${SPRING_CACHE_REDIS_TTL:10m}
+
+  mail:
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            port: 465
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+server:
+  port: 8080
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+app:
+  upload:
+    avatar-dir: ../uploads/avatars
+  email:
+    code-expire-minutes: ${EMAIL_CODE_EXPIRE_MINUTES:5}
+    send-interval-seconds: ${EMAIL_CODE_SEND_INTERVAL_SECONDS:60}
+
+---
+# 未安装 / 未启动 Redis 时使用：--spring.profiles.active=no-redis（可与 dev/prod 组合，如 prod,no-redis）
+spring:
+  config:
+    activate:
+      on-profile: no-redis
+  cache:
+    type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration

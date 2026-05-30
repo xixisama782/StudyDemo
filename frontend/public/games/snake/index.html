@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>贪吃蛇</title>
+  <style>
+    :root {
+      --gc-bg: #0a0c0f;
+      --gc-surface: #14181c;
+      --gc-elevated: #1e2329;
+      --gc-primary: #7c3aed;
+      --gc-success: #10b981;
+      --gc-error: #ef4444;
+      --gc-text: #ffffff;
+      --gc-text-secondary: #9ca3af;
+      --gc-text-muted: #6b7280;
+      --gc-border: rgba(255, 255, 255, 0.08);
+      --gc-warning: #f59e0b;
+      --gc-touch: 48px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: var(--gc-bg);
+      color: var(--gc-text-secondary);
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 12px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gc-text);
+      margin: 0 0 8px;
+      text-align: center;
+    }
+    @media (min-width: 641px) {
+      h1 { font-size: 20px; }
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .badge {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--gc-elevated);
+      border: 1px solid var(--gc-border);
+      color: var(--gc-warning);
+    }
+    .badge[hidden] { display: none !important; }
+    .board-wrap {
+      outline: none;
+      border-radius: 8px;
+      margin: 0 auto;
+      width: fit-content;
+      touch-action: none;
+    }
+    .board-wrap:focus-visible {
+      box-shadow: 0 0 0 2px var(--gc-bg), 0 0 0 4px var(--gc-primary);
+    }
+    #c {
+      display: block;
+      border: 2px solid var(--gc-border);
+      border-radius: 8px;
+      background: var(--gc-elevated);
+      max-width: 100%;
+      height: auto;
+    }
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin: 12px 0;
+      flex-wrap: wrap;
+    }
+    .stat-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gc-primary);
+    }
+    @media (min-width: 641px) {
+      .stat-val { font-size: 24px; }
+    }
+    .stat-label { font-size: 14px; color: var(--gc-text-secondary); }
+    .btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin: 8px 0;
+    }
+    button {
+      min-height: 44px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      font-family: inherit;
+      transition: filter 0.2s ease, background 0.2s ease;
+    }
+    .btn-primary {
+      background: var(--gc-primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--gc-text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .btn-secondary:hover { background: var(--gc-elevated); }
+    .hint {
+      color: var(--gc-text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 8px 0 0;
+      text-align: center;
+    }
+    .touch-pad {
+      display: grid;
+      grid-template-columns: repeat(3, var(--gc-touch));
+      grid-template-rows: repeat(3, var(--gc-touch));
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    @media (min-width: 900px) {
+      .touch-pad { display: none; }
+    }
+    .touch-pad button {
+      min-width: var(--gc-touch);
+      min-height: var(--gc-touch);
+      padding: 0;
+      font-size: 18px;
+      background: var(--gc-elevated);
+      color: var(--gc-text);
+      border: 1px solid var(--gc-border);
+    }
+    .touch-pad .spacer { visibility: hidden; pointer-events: none; }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .modal-overlay.is-open { display: flex; }
+    .modal {
+      width: 100%;
+      max-width: 400px;
+      padding: 24px;
+      background: var(--gc-surface);
+      border: 1px solid var(--gc-border);
+      border-radius: 12px;
+      text-align: center;
+    }
+    .modal h3 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--gc-text);
+    }
+    .modal p { margin: 0 0 20px; font-size: 14px; color: var(--gc-text-secondary); }
+    .modal .btn-primary { width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="title-row">
+      <h1>贪吃蛇</h1>
+      <span id="pauseBadge" class="badge" hidden>已暂停 · P 继续</span>
+    </div>
+    <div id="boardWrap" class="board-wrap" tabindex="0" role="application" aria-label="游戏区域">
+      <canvas id="c" width="400" height="400"></canvas>
+    </div>
+    <div class="stats">
+      <div><div class="stat-label">分数</div><div class="stat-val" id="score">0</div></div>
+      <div><div class="stat-label">最高分</div><div class="stat-val" id="high">0</div></div>
+    </div>
+    <div class="btns">
+      <button class="btn-primary" id="startBtn" type="button">开始游戏</button>
+      <button class="btn-secondary" id="resetBtn" type="button">重置</button>
+    </div>
+    <p class="hint">
+      方向键或 WASD 转向 · P 暂停<br />
+      触屏可使用下方方向键
+    </p>
+    <div class="touch-pad" aria-hidden="true">
+      <span class="spacer"></span>
+      <button type="button" data-dy="-1" data-dx="0" aria-label="上">↑</button>
+      <span class="spacer"></span>
+      <button type="button" data-dy="0" data-dx="-1" aria-label="左">←</button>
+      <span class="spacer"></span>
+      <button type="button" data-dy="0" data-dx="1" aria-label="右">→</button>
+      <span class="spacer"></span>
+      <button type="button" data-dy="1" data-dx="0" aria-label="下">↓</button>
+      <span class="spacer"></span>
+    </div>
+  </div>
+  <div id="endModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <div class="modal">
+      <h3 id="endTitle">游戏结束</h3>
+      <p id="endMsg"></p>
+      <button type="button" class="btn-primary" id="endDismiss">确定</button>
+    </div>
+  </div>
+  <script>
+(function () {
+  var GRID = 20
+  var canvas = document.getElementById('c')
+  var ctx = canvas.getContext('2d')
+  var scoreEl = document.getElementById('score')
+  var highEl = document.getElementById('high')
+  var startBtn = document.getElementById('startBtn')
+  var resetBtn = document.getElementById('resetBtn')
+  var boardWrap = document.getElementById('boardWrap')
+  var pauseBadge = document.getElementById('pauseBadge')
+  var endModal = document.getElementById('endModal')
+  var endMsg = document.getElementById('endMsg')
+  var endDismiss = document.getElementById('endDismiss')
+
+  var cellPx = 20
+  var dpr = 1
+  var score = 0
+  var highScore = 0
+  var gameRunning = false
+  var paused = false
+  var ending = false
+  var gameLoop = null
+  var snake = [{ gx: 10, gy: 10 }]
+  var direction = { gx: 1, gy: 0 }
+  var food = { gx: 0, gy: 0 }
+
+  function pixelSize() {
+    return GRID * cellPx
+  }
+
+  function generateFood() {
+    var ok = false
+    while (!ok) {
+      food.gx = Math.floor(Math.random() * GRID)
+      food.gy = Math.floor(Math.random() * GRID)
+      ok = true
+      for (var i = 0; i < snake.length; i++) {
+        if (snake[i].gx === food.gx && snake[i].gy === food.gy) {
+          ok = false
+          break
+        }
+      }
+    }
+  }
+
+  function resizeCanvas() {
+    var maxDim = Math.min(window.innerWidth - 32, 440)
+    var avail = window.visualViewport ? window.visualViewport.height : window.innerHeight
+    maxDim = Math.min(maxDim, avail * 0.5)
+    cellPx = Math.max(12, Math.floor(maxDim / GRID))
+    dpr = Math.min(window.devicePixelRatio || 1, 2)
+    var px = GRID * cellPx
+    canvas.width = Math.floor(px * dpr)
+    canvas.height = Math.floor(px * dpr)
+    canvas.style.width = px + 'px'
+    canvas.style.height = px + 'px'
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    draw()
+  }
+
+  function draw() {
+    var px = pixelSize()
+    ctx.fillStyle = '#1E2329'
+    ctx.fillRect(0, 0, px, px)
+    var inset = Math.max(1, Math.floor(cellPx * 0.08))
+    ctx.fillStyle = '#10B981'
+    for (var i = 0; i < snake.length; i++) {
+      var s = snake[i]
+      ctx.fillRect(s.gx * cellPx + inset, s.gy * cellPx + inset, cellPx - inset * 2, cellPx - inset * 2)
+    }
+    ctx.fillStyle = '#EF4444'
+    ctx.fillRect(food.gx * cellPx + inset + 1, food.gy * cellPx + inset + 1, cellPx - inset * 2 - 2, cellPx - inset * 2 - 2)
+  }
+
+  function postGameOver() {
+    var origin = window.location.origin || '*'
+    try {
+      window.parent.postMessage({ type: 'GAME_OVER', score: score }, origin)
+    } catch (e) {}
+  }
+
+  function endGame() {
+    if (ending) return
+    ending = true
+    gameRunning = false
+    paused = false
+    pauseBadge.hidden = true
+    if (gameLoop) {
+      clearInterval(gameLoop)
+      gameLoop = null
+    }
+    startBtn.disabled = false
+    if (score > highScore) {
+      highScore = score
+      highEl.textContent = String(highScore)
+    }
+    postGameOver()
+    if (score > 0) {
+      endMsg.textContent = '得分 ' + score
+      endModal.classList.add('is-open')
+    }
+    ending = false
+  }
+
+  function setDir(nx, ny) {
+    if (direction.gx === -nx && direction.gy === -ny) return
+    if (direction.gx === nx && direction.gy === ny) return
+    direction = { gx: nx, gy: ny }
+  }
+
+  function update() {
+    if (direction.gx === 0 && direction.gy === 0) return
+    if (paused) return
+    var head = snake[0]
+    var ngx = head.gx + direction.gx
+    var ngy = head.gy + direction.gy
+    if (ngx < 0 || ngx >= GRID || ngy < 0 || ngy >= GRID) {
+      endGame()
+      return
+    }
+    for (var i = 0; i < snake.length; i++) {
+      if (snake[i].gx === ngx && snake[i].gy === ngy) {
+        endGame()
+        return
+      }
+    }
+    snake.unshift({ gx: ngx, gy: ngy })
+    if (ngx === food.gx && ngy === food.gy) {
+      score++
+      scoreEl.textContent = String(score)
+      generateFood()
+    } else {
+      snake.pop()
+    }
+    draw()
+  }
+
+  function reset() {
+    snake = [{ gx: Math.floor(GRID / 2), gy: Math.floor(GRID / 2) }]
+    direction = { gx: 1, gy: 0 }
+    score = 0
+    scoreEl.textContent = '0'
+    generateFood()
+    draw()
+  }
+
+  function startGame() {
+    if (!gameRunning) {
+      reset()
+      gameRunning = true
+      paused = false
+      pauseBadge.hidden = true
+      startBtn.disabled = true
+      gameLoop = setInterval(update, 100)
+      boardWrap.focus()
+    }
+  }
+
+  function togglePause() {
+    if (!gameRunning) return
+    paused = !paused
+    pauseBadge.hidden = !paused
+  }
+
+  startBtn.addEventListener('click', startGame)
+  resetBtn.addEventListener('click', function () {
+    if (gameRunning) {
+      gameRunning = false
+      paused = false
+      pauseBadge.hidden = true
+      if (gameLoop) {
+        clearInterval(gameLoop)
+        gameLoop = null
+      }
+      startBtn.disabled = false
+    }
+    reset()
+  })
+
+  endDismiss.addEventListener('click', function () {
+    endModal.classList.remove('is-open')
+  })
+
+  document.querySelector('.touch-pad').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-dx]')
+    if (!btn || !gameRunning || paused) return
+    var dx = parseInt(btn.getAttribute('data-dx'), 10)
+    var dy = parseInt(btn.getAttribute('data-dy'), 10)
+    setDir(dx, dy)
+  })
+
+  document.addEventListener('keydown', function (e) {
+    var k = e.key
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'p', 'P'].indexOf(k) >= 0) {
+      if (gameRunning) e.preventDefault()
+    }
+    if (k === 'p' || k === 'P') {
+      togglePause()
+      return
+    }
+    if (!gameRunning) return
+    switch (k) {
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        setDir(0, -1)
+        break
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        setDir(0, 1)
+        break
+      case 'ArrowLeft':
+      case 'a':
+      case 'A':
+        setDir(-1, 0)
+        break
+      case 'ArrowRight':
+      case 'd':
+      case 'D':
+        setDir(1, 0)
+        break
+      default:
+        break
+    }
+  })
+
+  boardWrap.addEventListener('click', function () {
+    boardWrap.focus()
+  })
+
+  window.addEventListener('resize', resizeCanvas)
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resizeCanvas)
+  }
+
+  generateFood()
+  resizeCanvas()
+})()
+  </script>
+</body>
+</html>

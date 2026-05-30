@@ -1,0 +1,73 @@
+# 生产 profile：无弱默认密钥/库/CORS；MyBatis SQL 不打印 stdout。
+# 启动：java -jar app.jar --spring.profiles.active=prod
+#
+# 必填环境变量见 backend/env.example「PRODUCTION」节与 PRODUCTION.md。
+# 下列占位符无默认值，缺失会导致启动失败（避免误用 dev 配置）。
+
+spring:
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAX_POOL_SIZE:20}
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MIN_IDLE:5}
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:3000ms}
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+  expiration-time: ${JWT_EXPIRATION_MS:86400000}
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
+  email:
+    from: ${MAIL_FROM:${spring.mail.username:}}
+
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+  health:
+    db:
+      enabled: true
+    redis:
+      enabled: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+logging:
+  level:
+    root: WARN
+    com.example: INFO
+    com.example.gamecenter.mapper: WARN
+    com.baomidou.mybatisplus: WARN

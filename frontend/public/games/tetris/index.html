@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>俄罗斯方块</title>
+  <style>
+    :root {
+      --gc-bg: #0a0c0f;
+      --gc-surface: #14181c;
+      --gc-elevated: #1e2329;
+      --gc-primary: #7c3aed;
+      --gc-success: #10b981;
+      --gc-warning: #f59e0b;
+      --gc-error: #ef4444;
+      --gc-text: #ffffff;
+      --gc-text-secondary: #9ca3af;
+      --gc-text-muted: #6b7280;
+      --gc-border: rgba(255, 255, 255, 0.08);
+      --gc-touch: 48px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: var(--gc-bg);
+      color: var(--gc-text-secondary);
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 12px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    .app {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gc-text);
+      margin: 0;
+    }
+    @media (min-width: 641px) {
+      h1 { font-size: 20px; }
+    }
+    .badge {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--gc-elevated);
+      border: 1px solid var(--gc-border);
+      color: var(--gc-text-muted);
+    }
+    .badge--pause {
+      color: var(--gc-warning);
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+    .main-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    @media (min-width: 480px) and (min-height: 560px) {
+      .main-row {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 16px;
+      }
+    }
+    .panel {
+      background: var(--gc-surface);
+      border: 1px solid var(--gc-border);
+      border-radius: 8px;
+      padding: 12px;
+      width: 100%;
+      max-width: 120px;
+    }
+    @media (max-width: 479px) {
+      .panel {
+        max-width: none;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        justify-content: center;
+      }
+    }
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gc-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    @media (max-width: 479px) {
+      .panel h2 { margin: 0; flex-shrink: 0; }
+    }
+    #nextCv {
+      display: block;
+      margin: 0 auto;
+      border-radius: 4px;
+      background: var(--gc-elevated);
+    }
+    .board-wrap {
+      outline: none;
+      border-radius: 8px;
+      touch-action: none;
+    }
+    .board-wrap:focus-visible {
+      box-shadow: 0 0 0 2px var(--gc-bg), 0 0 0 4px var(--gc-primary);
+    }
+    #c {
+      display: block;
+      width: 100%;
+      max-width: min(100vw - 32px, 360px);
+      height: auto;
+      border: 2px solid var(--gc-border);
+      border-radius: 8px;
+      background: var(--gc-elevated);
+    }
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px 24px;
+      margin: 12px 0;
+    }
+    .stat-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gc-primary);
+    }
+    @media (min-width: 641px) {
+      .stat-val { font-size: 24px; }
+    }
+    .stat-label { font-size: 14px; color: var(--gc-text-secondary); }
+    .btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin: 8px 0;
+    }
+    button {
+      min-height: 44px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      font-family: inherit;
+      transition: filter 0.2s ease, background 0.2s ease;
+    }
+    .btn-primary {
+      background: var(--gc-primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--gc-text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .btn-secondary:hover { background: var(--gc-elevated); }
+    .hint {
+      color: var(--gc-text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 8px 0 0;
+      text-align: center;
+    }
+    .touch-pad {
+      display: grid;
+      grid-template-columns: repeat(3, var(--gc-touch));
+      grid-template-rows: repeat(3, var(--gc-touch));
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    @media (min-width: 900px) {
+      .touch-pad { display: none; }
+    }
+    .touch-pad button {
+      min-width: var(--gc-touch);
+      min-height: var(--gc-touch);
+      padding: 0;
+      font-size: 18px;
+      background: var(--gc-elevated);
+      color: var(--gc-text);
+      border: 1px solid var(--gc-border);
+    }
+    .touch-pad button:active { background: var(--gc-surface); }
+    .touch-pad .spacer { visibility: hidden; pointer-events: none; }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .modal-overlay.is-open { display: flex; }
+    .modal {
+      width: 100%;
+      max-width: 400px;
+      padding: 24px;
+      background: var(--gc-surface);
+      border: 1px solid var(--gc-border);
+      border-radius: 12px;
+      text-align: center;
+    }
+    .modal h3 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--gc-text);
+    }
+    .modal p { margin: 0 0 20px; font-size: 14px; color: var(--gc-text-secondary); }
+    .modal .btn-primary { width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="title-row">
+      <h1>俄罗斯方块</h1>
+      <span id="pauseBadge" class="badge" hidden>已暂停 · P 继续</span>
+    </div>
+    <div class="main-row">
+      <div class="panel">
+        <h2>下一个</h2>
+        <canvas id="nextCv" width="96" height="96" aria-hidden="true"></canvas>
+      </div>
+      <div id="boardWrap" class="board-wrap" tabindex="0" role="application" aria-label="游戏区域，点击后可用键盘操作">
+        <canvas id="c" width="300" height="600"></canvas>
+      </div>
+    </div>
+    <div class="stats">
+      <div><div class="stat-label">分数</div><div class="stat-val" id="score">0</div></div>
+      <div><div class="stat-label">行数</div><div class="stat-val" id="lines">0</div></div>
+      <div><div class="stat-label">最高分</div><div class="stat-val" id="high">0</div></div>
+    </div>
+    <div class="btns">
+      <button class="btn-primary" id="startBtn" type="button">开始游戏</button>
+      <button class="btn-secondary" id="resetBtn" type="button">重置</button>
+    </div>
+    <p class="hint">
+      键盘：←→ 移动 · ↓ 软降 · ↑ / X 顺时针旋转 · Z 逆时针 · 空格硬降 · P 暂停<br />
+      触屏：使用下方方向键与旋转键
+    </p>
+    <div class="touch-pad" aria-hidden="true">
+      <span class="spacer"></span>
+      <button type="button" data-act="rotate-ccw" aria-label="逆时针旋转">↺</button>
+      <button type="button" data-act="rotate" aria-label="顺时针旋转">↻</button>
+      <button type="button" data-act="left" aria-label="左移">←</button>
+      <button type="button" data-act="down" aria-label="软降">↓</button>
+      <button type="button" data-act="right" aria-label="右移">→</button>
+      <span class="spacer"></span>
+      <button type="button" data-act="drop" style="grid-column: span 3" aria-label="硬降">硬降 ⤓</button>
+    </div>
+  </div>
+  <div id="endModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <div class="modal">
+      <h3 id="endTitle">游戏结束</h3>
+      <p id="endMsg"></p>
+      <button type="button" class="btn-primary" id="endDismiss">确定</button>
+    </div>
+  </div>
+  <script>
+(function () {
+  var COLS = 10
+  var ROWS = 20
+  var canvas = document.getElementById('c')
+  var ctx = canvas.getContext('2d')
+  var nextCv = document.getElementById('nextCv')
+  var nctx = nextCv.getContext('2d')
+  var scoreEl = document.getElementById('score')
+  var linesEl = document.getElementById('lines')
+  var highEl = document.getElementById('high')
+  var startBtn = document.getElementById('startBtn')
+  var resetBtn = document.getElementById('resetBtn')
+  var boardWrap = document.getElementById('boardWrap')
+  var pauseBadge = document.getElementById('pauseBadge')
+  var endModal = document.getElementById('endModal')
+  var endMsg = document.getElementById('endMsg')
+  var endDismiss = document.getElementById('endDismiss')
+
+  var COLORS = ['', '#7C3AED', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#EC4899', '#14B8A6']
+
+  var SHAPES = [
+    { id: 1, m: [[1, 1, 1, 1]] },
+    { id: 2, m: [[1, 1], [1, 1]] },
+    { id: 3, m: [[0, 1, 0], [1, 1, 1]] },
+    { id: 4, m: [[0, 1, 1], [1, 1, 0]] },
+    { id: 5, m: [[1, 1, 0], [0, 1, 1]] },
+    { id: 6, m: [[1, 0, 0], [1, 1, 1]] },
+    { id: 7, m: [[0, 0, 1], [1, 1, 1]] }
+  ]
+
+  var score = 0
+  var lines = 0
+  var highScore = 0
+  var gameRunning = false
+  var paused = false
+  var ending = false
+  var gameLoop = null
+  var board = []
+  var currentPiece = null
+  var nextPieceDef = null
+  var bag = []
+  var cellPx = 30
+  var dpr = 1
+
+  function rotateCW(mat) {
+    var R = mat.length
+    var C = mat[0].length
+    var o = []
+    for (var c = 0; c < C; c++) {
+      o[c] = []
+      for (var r = 0; r < R; r++) {
+        o[c][R - 1 - r] = mat[r][c]
+      }
+    }
+    return o
+  }
+
+  function rotateCCW(mat) {
+    var R = mat.length
+    var C = mat[0].length
+    var o = []
+    for (var c = 0; c < C; c++) {
+      o[c] = []
+      for (var r = 0; r < R; r++) {
+        o[c][r] = mat[r][C - 1 - c]
+      }
+    }
+    return o
+  }
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1))
+      var t = a[i]
+      a[i] = a[j]
+      a[j] = t
+    }
+  }
+
+  function refillBag() {
+    bag = SHAPES.slice()
+    shuffle(bag)
+  }
+
+  function pullFromBag() {
+    if (bag.length === 0) refillBag()
+    return bag.pop()
+  }
+
+  function emptyBoard() {
+    board = []
+    for (var y = 0; y < ROWS; y++) {
+      var row = []
+      for (var x = 0; x < COLS; x++) row.push(0)
+      board.push(row)
+    }
+  }
+
+  function pieceFits(shape, px, py) {
+    for (var y = 0; y < shape.length; y++) {
+      for (var x = 0; x < shape[y].length; x++) {
+        if (!shape[y][x]) continue
+        var nx = px + x
+        var ny = py + y
+        if (nx < 0 || nx >= COLS || ny >= ROWS) return false
+        if (ny >= 0 && board[ny][nx]) return false
+      }
+    }
+    return true
+  }
+
+  function trySpawn(def) {
+    var w = def.m[0].length
+    var px = Math.floor((COLS - w) / 2)
+    return { shape: def.m.map(function (r) { return r.slice() }), id: def.id, x: px, y: 0 }
+  }
+
+  function spawnPiece() {
+    var def = nextPieceDef || pullFromBag()
+    nextPieceDef = pullFromBag()
+    currentPiece = trySpawn(def)
+    drawNextPreview()
+  }
+
+  var KICKS = [
+    [0, 0], [-1, 0], [1, 0], [0, -1], [-2, 0], [2, 0], [1, -1], [-1, -1]
+  ]
+
+  function tryRotate(dir) {
+    if (!currentPiece || paused) return
+    var next = dir > 0 ? rotateCW(currentPiece.shape) : rotateCCW(currentPiece.shape)
+    for (var k = 0; k < KICKS.length; k++) {
+      var dx = KICKS[k][0]
+      var dy = KICKS[k][1]
+      if (pieceFits(next, currentPiece.x + dx, currentPiece.y + dy)) {
+        currentPiece.shape = next
+        currentPiece.x += dx
+        currentPiece.y += dy
+        draw()
+        return
+      }
+    }
+  }
+
+  function ghostY() {
+    if (!currentPiece) return 0
+    var gy = currentPiece.y
+    while (pieceFits(currentPiece.shape, currentPiece.x, gy + 1)) gy++
+    return gy
+  }
+
+  function hardDrop() {
+    if (!currentPiece || paused) return
+    while (pieceFits(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) {
+      currentPiece.y++
+      score += 1
+    }
+    scoreEl.textContent = String(score)
+    lockAndContinue()
+  }
+
+  function lockAndContinue() {
+    placePiece()
+    clearLines()
+    spawnPiece()
+    if (!pieceFits(currentPiece.shape, currentPiece.x, currentPiece.y)) {
+      draw()
+      endGame()
+    } else {
+      draw()
+    }
+  }
+
+  function placePiece() {
+    for (var y = 0; y < currentPiece.shape.length; y++) {
+      for (var x = 0; x < currentPiece.shape[y].length; x++) {
+        if (currentPiece.shape[y][x]) {
+          var by = currentPiece.y + y
+          var bx = currentPiece.x + x
+          if (by >= 0) board[by][bx] = currentPiece.id
+        }
+      }
+    }
+  }
+
+  function clearLines() {
+    for (var y = ROWS - 1; y >= 0; y--) {
+      var full = true
+      for (var x = 0; x < COLS; x++) {
+        if (!board[y][x]) {
+          full = false
+          break
+        }
+      }
+      if (full) {
+        board.splice(y, 1)
+        board.unshift(new Array(COLS).fill(0))
+        lines++
+        score += 100
+        linesEl.textContent = String(lines)
+        scoreEl.textContent = String(score)
+        y++
+      }
+    }
+  }
+
+  function resizeCanvas() {
+    var maxW = Math.min(window.innerWidth - 32, 400)
+    var availH = window.visualViewport ? window.visualViewport.height : window.innerHeight
+    var maxH = Math.min(availH * 0.52, 620)
+    var byW = Math.floor(maxW / COLS)
+    var byH = Math.floor(maxH / ROWS)
+    cellPx = Math.max(14, Math.min(32, Math.min(byW, byH)))
+    dpr = Math.min(window.devicePixelRatio || 1, 2)
+    var cw = COLS * cellPx
+    var ch = ROWS * cellPx
+    canvas.width = Math.floor(cw * dpr)
+    canvas.height = Math.floor(ch * dpr)
+    canvas.style.width = cw + 'px'
+    canvas.style.height = ch + 'px'
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    draw()
+    drawNextPreview()
+  }
+
+  function drawCell(x, y, color, alpha) {
+    var pad = Math.max(1, Math.floor(cellPx * 0.06))
+    ctx.globalAlpha = alpha == null ? 1 : alpha
+    ctx.fillStyle = color
+    ctx.fillRect(x * cellPx + pad, y * cellPx + pad, cellPx - pad * 2, cellPx - pad * 2)
+    ctx.globalAlpha = 1
+  }
+
+  function draw() {
+    var cw = COLS * cellPx
+    var ch = ROWS * cellPx
+    ctx.fillStyle = '#1E2329'
+    ctx.fillRect(0, 0, cw, ch)
+    for (var y = 0; y < ROWS; y++) {
+      for (var x = 0; x < COLS; x++) {
+        if (board[y][x]) {
+          drawCell(x, y, COLORS[board[y][x]] || COLORS[1])
+        }
+      }
+    }
+    if (currentPiece && gameRunning && !paused) {
+      var gy = ghostY()
+      for (var py = 0; py < currentPiece.shape.length; py++) {
+        for (var px = 0; px < currentPiece.shape[py].length; px++) {
+          if (currentPiece.shape[py][px]) {
+            var bx = currentPiece.x + px
+            var by = gy + py
+            if (by >= 0) drawCell(bx, by, COLORS[currentPiece.id], 0.22)
+          }
+        }
+      }
+    }
+    if (currentPiece) {
+      for (var py2 = 0; py2 < currentPiece.shape.length; py2++) {
+        for (var px2 = 0; px2 < currentPiece.shape[py2].length; px2++) {
+          if (currentPiece.shape[py2][px2]) {
+            var bx2 = currentPiece.x + px2
+            var by2 = currentPiece.y + py2
+            if (by2 >= 0) drawCell(bx2, by2, COLORS[currentPiece.id])
+          }
+        }
+      }
+    }
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'
+    ctx.lineWidth = 1
+    for (var i = 0; i <= COLS; i++) {
+      ctx.beginPath()
+      ctx.moveTo(i * cellPx, 0)
+      ctx.lineTo(i * cellPx, ch)
+      ctx.stroke()
+    }
+    for (var j = 0; j <= ROWS; j++) {
+      ctx.beginPath()
+      ctx.moveTo(0, j * cellPx)
+      ctx.lineTo(cw, j * cellPx)
+      ctx.stroke()
+    }
+  }
+
+  function drawNextPreview() {
+    var def = nextPieceDef || SHAPES[0]
+    var m = def.m
+    var nc = 4
+    var nr = 4
+    var cs = 22
+    nctx.fillStyle = '#1E2329'
+    nctx.fillRect(0, 0, nextCv.width, nextCv.height)
+    var mw = m[0].length
+    var mh = m.length
+    var ox = Math.floor((nc - mw) / 2)
+    var oy = Math.floor((nr - mh) / 2)
+    for (var y = 0; y < mh; y++) {
+      for (var x = 0; x < mw; x++) {
+        if (m[y][x]) {
+          nctx.fillStyle = COLORS[def.id]
+          nctx.fillRect((ox + x) * cs + 2, (oy + y) * cs + 2, cs - 4, cs - 4)
+        }
+      }
+    }
+  }
+
+  function postGameOver() {
+    var origin = window.location.origin || '*'
+    try {
+      window.parent.postMessage({ type: 'GAME_OVER', score: score, lines: lines }, origin)
+    } catch (e) {}
+  }
+
+  function endGame() {
+    if (ending) return
+    ending = true
+    gameRunning = false
+    paused = false
+    pauseBadge.hidden = true
+    if (gameLoop) {
+      clearInterval(gameLoop)
+      gameLoop = null
+    }
+    startBtn.disabled = false
+    if (score > highScore) {
+      highScore = score
+      highEl.textContent = String(highScore)
+    }
+    postGameOver()
+    if (score > 0) {
+      endMsg.textContent = '得分 ' + score + '，消除 ' + lines + ' 行'
+      endModal.classList.add('is-open')
+    }
+    ending = false
+  }
+
+  function update() {
+    if (!currentPiece || paused) return
+    if (pieceFits(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) {
+      currentPiece.y++
+    } else {
+      lockAndContinue()
+      return
+    }
+    draw()
+  }
+
+  function resetGame() {
+    emptyBoard()
+    score = 0
+    lines = 0
+    scoreEl.textContent = '0'
+    linesEl.textContent = '0'
+    currentPiece = null
+    nextPieceDef = null
+    bag = []
+    refillBag()
+    draw()
+    drawNextPreview()
+  }
+
+  function startGame() {
+    if (!gameRunning) {
+      gameRunning = true
+      paused = false
+      pauseBadge.hidden = true
+      startBtn.disabled = true
+      resetGame()
+      nextPieceDef = pullFromBag()
+      spawnPiece()
+      gameLoop = setInterval(update, 500)
+      boardWrap.focus()
+      draw()
+    }
+  }
+
+  function togglePause() {
+    if (!gameRunning) return
+    paused = !paused
+    pauseBadge.hidden = !paused
+    draw()
+  }
+
+  startBtn.addEventListener('click', startGame)
+  resetBtn.addEventListener('click', function () {
+    if (gameRunning) {
+      gameRunning = false
+      paused = false
+      pauseBadge.hidden = true
+      if (gameLoop) {
+        clearInterval(gameLoop)
+        gameLoop = null
+      }
+      startBtn.disabled = false
+    }
+    resetGame()
+  })
+
+  endDismiss.addEventListener('click', function () {
+    endModal.classList.remove('is-open')
+  })
+
+  document.querySelector('.touch-pad').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-act]')
+    if (!btn || !gameRunning || paused) return
+    var act = btn.getAttribute('data-act')
+    if (act === 'left' && pieceFits(currentPiece.shape, currentPiece.x - 1, currentPiece.y)) currentPiece.x--
+    if (act === 'right' && pieceFits(currentPiece.shape, currentPiece.x + 1, currentPiece.y)) currentPiece.x++
+    if (act === 'down' && pieceFits(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) {
+      currentPiece.y++
+      score += 1
+      scoreEl.textContent = String(score)
+    }
+    if (act === 'rotate') tryRotate(1)
+    if (act === 'rotate-ccw') tryRotate(-1)
+    if (act === 'drop') hardDrop()
+    draw()
+  })
+
+  document.addEventListener('keydown', function (e) {
+    var k = e.key
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'p', 'P', 'z', 'Z', 'x', 'X'].indexOf(k) >= 0) {
+      if (gameRunning && currentPiece) e.preventDefault()
+    }
+    if (k === 'p' || k === 'P') {
+      togglePause()
+      return
+    }
+    if (!gameRunning || !currentPiece || paused) return
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+      if (pieceFits(currentPiece.shape, currentPiece.x - 1, currentPiece.y)) currentPiece.x--
+    }
+    if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+      if (pieceFits(currentPiece.shape, currentPiece.x + 1, currentPiece.y)) currentPiece.x++
+    }
+    if (k === 'ArrowDown' || k === 's' || k === 'S') {
+      if (pieceFits(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) {
+        currentPiece.y++
+        score += 1
+        scoreEl.textContent = String(score)
+      }
+    }
+    if (k === 'ArrowUp' || k === 'x' || k === 'X') tryRotate(1)
+    if (k === 'z' || k === 'Z') tryRotate(-1)
+    if (k === ' ') hardDrop()
+    draw()
+  })
+
+  boardWrap.addEventListener('click', function () {
+    boardWrap.focus()
+  })
+
+  window.addEventListener('resize', function () {
+    resizeCanvas()
+  })
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resizeCanvas)
+  }
+
+  emptyBoard()
+  resizeCanvas()
+})()
+  </script>
+</body>
+</html>

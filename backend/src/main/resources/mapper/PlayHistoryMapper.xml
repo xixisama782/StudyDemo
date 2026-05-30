@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.gamecenter.mapper.PlayHistoryMapper">
+
+    <insert id="upsertMergePlayHistory">
+        INSERT INTO play_history (user_id, game_id, played_at, duration_seconds, score, meta)
+        VALUES (#{userId}, #{gameId}, #{playedAt}, #{durationSeconds}, #{score}, #{meta})
+        ON DUPLICATE KEY UPDATE
+            played_at = VALUES(played_at),
+            duration_seconds = duration_seconds + VALUES(duration_seconds),
+            score = VALUES(score),
+            meta = VALUES(meta)
+    </insert>
+    
+    <select id="selectHistoryWithGameInfo" resultType="java.util.Map">
+        SELECT h.id, h.game_id as gameId, g.name as gameName, 
+               g.thumbnail_url as thumbnailUrl, h.played_at as playedAt, 
+               h.duration_seconds as durationSeconds, h.score 
+        FROM play_history h 
+        JOIN games g ON h.game_id = g.id 
+        WHERE h.user_id = #{userId}
+        <if test="gameId != null">
+            AND h.game_id = #{gameId}
+        </if>
+        ORDER BY h.played_at DESC 
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+</mapper>
