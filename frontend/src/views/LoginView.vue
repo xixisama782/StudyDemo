@@ -1,11 +1,6 @@
 <template>
   <div class="login-page">
     <n-card class="login-card" title="用户登录" size="large">
-      <template #header-extra>
-        <n-button quaternary size="small" title="双击进入管理端" @dblclick="goToAdminLogin">
-          管理端
-        </n-button>
-      </template>
       <n-alert v-if="error" type="error" :show-icon="false" style="margin-bottom: 16px">
         {{ error }}
       </n-alert>
@@ -54,13 +49,6 @@ const loading = ref(false)
 const error = ref('')
 const router = useRouter()
 const authStore = useAuthStore()
-
-/** 双击「管理端」入口打开独立管理端应用 */
-const adminLoginUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:10110/login'
-
-const goToAdminLogin = () => {
-  window.open(adminLoginUrl, '_blank', 'noopener,noreferrer')
-}
 
 const handleLogin = async () => {
   loading.value = true

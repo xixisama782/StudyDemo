@@ -159,7 +159,7 @@ flowchart TD
   Lay --> Us["/users AdminUsersView"]
 ```
 
-用户端 `frontend/` 不再提供 `/admin/*` 页面；访问旧路径会重定向到 `http://localhost:10110`。
+用户端 `frontend/` 与管理端 `admin-frontend/` 为完全隔离的 SPA：无 `/admin` 路由，应用内亦无互相跳转的链接或重定向（各自独立 URL 访问）。
 
 ### 2.7 认证请求序列
 
@@ -677,7 +677,7 @@ flowchart LR
 
 ### 7.4 前端路由守卫
 
-**用户端** `frontend/src/router/index.ts`：`requiresAuth` → `/login`；`/admin/*` 重定向至管理端 URL。
+**用户端** `frontend/src/router/index.ts`：`requiresAuth` → `/login`（无管理端路由或外链）。
 
 **管理端** `admin-frontend/src/router/index.ts`：未登录访问受保护路由 → `/login`。
 

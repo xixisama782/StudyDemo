@@ -14,12 +14,6 @@ import GenericGamePlayerView from '../views/GenericGamePlayerView.vue'
 import GameLobbyView from '../views/GameLobbyView.vue'
 import { useAuthStore } from '../store/auth'
 
-const adminAppUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:10110/login'
-
-const redirectToAdminApp = () => {
-  window.location.replace(adminAppUrl)
-}
-
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
@@ -95,13 +89,8 @@ const router = createRouter({
   routes
 })
 
-/** 路由守卫：未登录跳转登录页；旧 /admin 路径跳转独立管理端 */
+/** 路由守卫：未登录跳转登录页 */
 router.beforeEach((to, _from, next) => {
-  if (to.path === '/admin' || to.path.startsWith('/admin/')) {
-    redirectToAdminApp()
-    return
-  }
-
   const authStore = useAuthStore()
   const isAuthenticated = authStore.isAuthenticated
 

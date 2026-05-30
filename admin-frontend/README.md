@@ -1,6 +1,6 @@
 # GameCenter 管理端前端
 
-Vue 3 + Vite + TypeScript + Pinia + Naive UI。独立运行于端口 **10110**，与用户端（`../frontend`，10109）分离。
+Vue 3 + Vite + TypeScript + Pinia + Naive UI。独立运行于端口 **10110**，与用户端 SPA 完全隔离（无返回用户端链接）。
 
 **完整项目文档** → [../PROJECT.md](../PROJECT.md)
 

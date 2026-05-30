@@ -22,10 +22,6 @@
           {{ loading ? '登录中...' : '管理员登录' }}
         </n-button>
       </n-form>
-      <div class="footer-link">
-        返回用户登录：
-        <a :href="clientLoginUrl">用户登录</a>
-      </div>
     </n-card>
   </div>
 </template>
@@ -38,8 +34,6 @@ import { NAlert, NButton, NCard, NForm, NFormItem, NInput } from 'naive-ui'
 import { useAuthStore } from '../store/auth'
 import api from '../api'
 import { getApiBusinessMessage, getApiErrorMessage } from '../utils/apiError'
-
-const clientLoginUrl = import.meta.env.VITE_CLIENT_URL || 'http://localhost:10109/login'
 
 const form = ref({
   username: '',
@@ -82,12 +76,5 @@ const handleLogin = async () => {
 .login-card {
   width: 100%;
   max-width: 420px;
-}
-
-.footer-link {
-  margin-top: 16px;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  text-align: center;
 }
 </style>
